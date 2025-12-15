@@ -7,14 +7,27 @@ import datetime
 # --- 頁面設定 (手機優先模式) ---
 st.set_page_config(page_title="首席金融軍師", page_icon="♟️", layout="centered")
 
-# --- 自定義 CSS (暗黑戰術風格) ---
+# --- 自定義 CSS (暗黑戰術風格：修正字體顏色版) ---
 st.markdown("""
     <style>
+    /* 全局背景與文字 */
     .stApp { background-color: #0e1117; color: #fafafa; }
+    
+    /* 卡片樣式 */
     .metric-card { background-color: #262730; padding: 15px; border-radius: 10px; border-left: 5px solid #4e8cff; margin-bottom: 10px; }
     .risk-card { background-color: #262730; padding: 15px; border-radius: 10px; border-left: 5px solid #ff4b4b; margin-bottom: 10px; }
     .advice-card { background-color: #1c2e4a; padding: 15px; border-radius: 10px; border: 1px solid #4e8cff; margin-bottom: 10px; }
+    
+    /* 標題顏色 (這裡設為亮藍色，您也可以改 gold 或 white) */
     h1, h2, h3 { color: #4e8cff !important; font-family: 'Helvetica', sans-serif; }
+    
+    /* [關鍵修正] 強制修改 st.metric 的標題與數值顏色 */
+    [data-testid="stMetricLabel"] {
+        color: #aaaaaa !important; /* 標題改成淺灰色 */
+    }
+    [data-testid="stMetricValue"] {
+        color: #ffffff !important; /* 數值改成亮白色 */
+    }
     </style>
 """, unsafe_allow_html=True)
 
