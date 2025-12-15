@@ -1,4 +1,3 @@
 streamlit
 yfinance
 pandas
-https://github.com/twopirllc/pandas-ta/archive/development.zip
