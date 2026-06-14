@@ -7,23 +7,23 @@
 <style>
   * { box-sizing: border-box; }
   body {
-    background-color: #0e1117;
-    color: #fafafa;
+    background-color: #f5f6f8;
+    color: #1a1a1a;
     font-family: 'Helvetica Neue', Arial, 'Microsoft JhengHei', sans-serif;
     max-width: 480px;
     margin: 0 auto;
     padding: 16px;
   }
-  h1, h2, h3 { color: #facc15; }
+  h1, h2, h3 { color: #b8860b; }
   h1 { font-size: 24px; margin-bottom: 4px; }
-  .caption { color: #aaaaaa; font-size: 13px; margin-bottom: 16px; }
+  .caption { color: #666666; font-size: 13px; margin-bottom: 16px; }
 
   .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
   .input-row input {
     flex: 1;
-    background-color: #262730;
-    color: #fafafa;
-    border: 1px solid #444;
+    background-color: #ffffff;
+    color: #1a1a1a;
+    border: 1px solid #ccc;
     border-radius: 6px;
     padding: 10px 12px;
     font-size: 16px;
@@ -40,26 +40,28 @@
   .input-row button:active { opacity: 0.8; }
 
   .metric-card {
-    background-color: #262730;
+    background-color: #ffffff;
     padding: 15px;
     border-radius: 10px;
     border-left: 5px solid #4e8cff;
     margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
-  .metric-card p { margin: 0; color: #aaa; }
-  .metric-card h2 { margin: 4px 0 0 0; color: white; }
+  .metric-card p { margin: 0; color: #777; }
+  .metric-card h2 { margin: 4px 0 0 0; color: #1a1a1a; }
 
   .metric-box {
-    background-color: #262730;
+    background-color: #ffffff;
     border-radius: 10px;
     padding: 12px;
     margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
-  .metric-box .label { color: #aaaaaa; font-size: 13px; }
-  .metric-box .value { color: #ffffff; font-size: 28px; font-weight: bold; }
+  .metric-box .label { color: #777777; font-size: 13px; }
+  .metric-box .value { color: #1a1a1a; font-size: 28px; font-weight: bold; }
   .metric-box .delta { font-size: 14px; margin-top: 2px; }
-  .delta-normal { color: #00c853; }
-  .delta-inverse { color: #ff4b4b; }
+  .delta-normal { color: #0a9c4a; }
+  .delta-inverse { color: #e03131; }
 
   .cards-grid {
     display: grid;
@@ -73,8 +75,8 @@
     text-align: center;
     font-size: 15px;
   }
-  .support-card { background-color: #1c2e2e; border: 1px solid #00c853; }
-  .resist-card { background-color: #2e1c1c; border: 1px solid #ff4b4b; }
+  .support-card { background-color: #e6f7ed; border: 1px solid #0a9c4a; color: #0a6e35; }
+  .resist-card { background-color: #fdeaea; border: 1px solid #e03131; color: #a31616; }
   .support-card b, .resist-card b { display: block; font-size: 18px; margin-top: 4px; }
 
   .info-box, .warn-box, .error-box {
@@ -83,11 +85,11 @@
     margin: 10px 0;
     font-size: 14px;
   }
-  .info-box { background-color: #0d3a4f; border: 1px solid #1f77b4; }
-  .warn-box { background-color: #4a3b0d; border: 1px solid #facc15; }
-  .error-box { background-color: #4a0d0d; border: 1px solid #ff4b4b; }
+  .info-box { background-color: #e7f1fa; border: 1px solid #1f77b4; color: #1c4f73; }
+  .warn-box { background-color: #fdf3da; border: 1px solid #d4a017; color: #6e4f04; }
+  .error-box { background-color: #fdeaea; border: 1px solid #e03131; color: #a31616; }
 
-  .loading { color: #aaaaaa; font-size: 14px; }
+  .loading { color: #777777; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -106,6 +108,40 @@
 const symbolInput = document.getElementById('symbolInput');
 const runBtn = document.getElementById('runBtn');
 const result = document.getElementById('result');
+
+// Fugle free-tier API key (low risk to expose client-side)
+const FUGLE_API_KEY = 'NDliZTZhODMtNmNjZi00ZDM5LWE0ZTUtMWVmNGY4OTkyMGViIGVmMmNkNDNhLWJiMWQtNDZkOS1iODgwLThlZDBhM2VhODk3Ng==';
+
+// Fugle 即時報價 (盤中精度較佳，08:30-20:00 台北時間嘗試使用)
+async function fetchFugleQuote(symbol) {
+  const code = symbol.replace(/\.TWO?$/i, '');
+  const url = `https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/${encodeURIComponent(code)}`;
+  const resp = await fetch(url, { headers: { 'X-API-KEY': FUGLE_API_KEY } });
+  if (!resp.ok) throw new Error(`Fugle HTTP ${resp.status}`);
+  const data = await resp.json();
+  if (data.closePrice == null) throw new Error('Fugle: no price');
+  return {
+    price: data.closePrice,
+    avgPrice: data.avgPrice != null ? data.avgPrice : data.closePrice,
+    time: data.closeTime ? Math.floor(data.closeTime / 1000) : Math.floor(Date.now() / 1000)
+  };
+}
+
+// Fugle 適用時段：平日 08:30-20:00 台北時間 (含收盤後資料)
+function shouldUseFugle() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Taipei',
+    weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = (type) => parts.find(p => p.type === type).value;
+  const weekday = get('weekday');
+  const hour = parseInt(get('hour'), 10);
+  const minute = parseInt(get('minute'), 10);
+  if (weekday === 'Sat' || weekday === 'Sun') return false;
+  const minutes = hour * 60 + minute;
+  return minutes >= 8 * 60 + 30 && minutes <= 20 * 60;
+}
 
 // CORS proxy fallback chain for Yahoo Finance chart API
 async function fetchYahooChart(symbol, range, interval) {
@@ -158,6 +194,7 @@ function parseIntraday(chartResult) {
   for (let i = 0; i < ts.length; i++) {
     if (q.close[i] == null || q.high[i] == null || q.low[i] == null || q.volume[i] == null) continue;
     bars.push({
+      time: ts[i],
       high: q.high[i],
       low: q.low[i],
       close: q.close[i],
@@ -169,6 +206,31 @@ function parseIntraday(chartResult) {
 
 function fmt(n) {
   return n.toFixed(2);
+}
+
+function fmtTaipeiTime(unixSeconds) {
+  const d = new Date(unixSeconds * 1000);
+  return d.toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// 台股盤中時段：平日 09:00–13:30 (台北時間)
+function isMarketOpen() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Taipei',
+    weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = (type) => parts.find(p => p.type === type).value;
+  const weekday = get('weekday');
+  const hour = parseInt(get('hour'), 10);
+  const minute = parseInt(get('minute'), 10);
+  if (weekday === 'Sat' || weekday === 'Sun') return false;
+  const minutes = hour * 60 + minute;
+  return minutes >= 9 * 60 && minutes <= 13 * 60 + 30;
 }
 
 async function analyzeSupport(symbol) {
@@ -201,26 +263,46 @@ async function analyzeSupport(symbol) {
     const nl = (2 * cdp) - yHigh;
     const al = cdp - (yHigh - yLow);
 
-    // B. 分鐘數據 (1d/1m) - 為了算 VWAP
-    let currentPrice, vwap, hasIntraday;
-    try {
-      const intradayResult = await fetchYahooChart(symbol, '1d', '1m');
-      const bars = parseIntraday(intradayResult);
-      if (bars.length === 0) throw new Error('empty intraday');
+    // B. 即時報價 - 優先用 Fugle，退回 Yahoo 分鐘線，再退回日線收盤
+    let currentPrice, vwap, hasIntraday, dataTime, priceSource;
 
-      currentPrice = bars[bars.length - 1].close;
-      let cumTPV = 0, cumV = 0;
-      for (const b of bars) {
-        const tp = (b.high + b.low + b.close) / 3;
-        cumTPV += tp * b.volume;
-        cumV += b.volume;
+    if (shouldUseFugle()) {
+      try {
+        const q = await fetchFugleQuote(symbol);
+        currentPrice = q.price;
+        vwap = q.avgPrice;
+        dataTime = q.time;
+        hasIntraday = true;
+        priceSource = 'fugle';
+      } catch (e) {
+        // fall through to Yahoo
       }
-      vwap = cumV > 0 ? cumTPV / cumV : currentPrice;
-      hasIntraday = true;
-    } catch (e) {
-      currentPrice = dailyCandles[dailyCandles.length - 1].close;
-      vwap = currentPrice;
-      hasIntraday = false;
+    }
+
+    if (priceSource !== 'fugle') {
+      try {
+        const intradayResult = await fetchYahooChart(symbol, '1d', '1m');
+        const bars = parseIntraday(intradayResult);
+        if (bars.length === 0) throw new Error('empty intraday');
+
+        currentPrice = bars[bars.length - 1].close;
+        dataTime = bars[bars.length - 1].time;
+        let cumTPV = 0, cumV = 0;
+        for (const b of bars) {
+          const tp = (b.high + b.low + b.close) / 3;
+          cumTPV += tp * b.volume;
+          cumV += b.volume;
+        }
+        vwap = cumV > 0 ? cumTPV / cumV : currentPrice;
+        hasIntraday = true;
+        priceSource = 'yahoo';
+      } catch (e) {
+        currentPrice = dailyCandles[dailyCandles.length - 1].close;
+        dataTime = dailyCandles[dailyCandles.length - 1].time;
+        vwap = currentPrice;
+        hasIntraday = false;
+        priceSource = 'daily';
+      }
     }
 
     // 漲跌
@@ -228,13 +310,23 @@ async function analyzeSupport(symbol) {
     const changePct = ((currentPrice - prevClose) / prevClose) * 100;
 
     // --- 畫面 ---
-    const colorVal = changePct > 0 ? '#ff4b4b' : '#00c853';
+    const colorVal = changePct > 0 ? '#e03131' : '#0a9c4a';
+
+    let statusLabel;
+    if (priceSource === 'fugle') {
+      statusLabel = isMarketOpen() ? '🔴 Fugle 即時' : '📊 Fugle 收盤';
+    } else if (priceSource === 'yahoo') {
+      statusLabel = '🟡 Yahoo (約15-20分延遲)';
+    } else {
+      statusLabel = '📊 收盤資料';
+    }
 
     let html = '';
     html += `
       <div class="metric-card">
-        <p>即時股價</p>
+        <p>即時股價 <span style="font-size:12px;">${statusLabel}</span></p>
         <h2>${fmt(currentPrice)} <span style="font-size:18px; color:${colorVal}">${changePct >= 0 ? '+' : ''}${fmt(changePct)}%</span></h2>
+        <p style="font-size:12px; margin-top:4px;">資料時間：${fmtTaipeiTime(dataTime)}</p>
       </div>`;
 
     html += '<h3>🧭 戰場定位</h3>';
@@ -295,6 +387,14 @@ symbolInput.addEventListener('keydown', (e) => {
 
 // 初次載入自動執行
 analyzeSupport(symbolInput.value.toUpperCase().trim());
+
+// 盤中每 60 秒自動刷新
+setInterval(() => {
+  if (isMarketOpen()) {
+    const symbol = symbolInput.value.toUpperCase().trim();
+    if (symbol) analyzeSupport(symbol);
+  }
+}, 60 * 1000);
 </script>
 
 </body>
