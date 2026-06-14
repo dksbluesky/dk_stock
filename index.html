@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛡️ 支撐壓力戰情室</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background-color: #0e1117;
+    color: #fafafa;
+    font-family: 'Helvetica Neue', Arial, 'Microsoft JhengHei', sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  h1, h2, h3 { color: #facc15; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .caption { color: #aaaaaa; font-size: 13px; margin-bottom: 16px; }
+
+  .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .input-row input {
+    flex: 1;
+    background-color: #262730;
+    color: #fafafa;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+  .input-row button {
+    background-color: #4e8cff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .input-row button:active { opacity: 0.8; }
+
+  .metric-card {
+    background-color: #262730;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 5px solid #4e8cff;
+    margin-bottom: 10px;
+  }
+  .metric-card p { margin: 0; color: #aaa; }
+  .metric-card h2 { margin: 4px 0 0 0; color: white; }
+
+  .metric-box {
+    background-color: #262730;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .metric-box .label { color: #aaaaaa; font-size: 13px; }
+  .metric-box .value { color: #ffffff; font-size: 28px; font-weight: bold; }
+  .metric-box .delta { font-size: 14px; margin-top: 2px; }
+  .delta-normal { color: #00c853; }
+  .delta-inverse { color: #ff4b4b; }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .support-card, .resist-card {
+    border-radius: 8px;
+    padding: 14px 10px;
+    text-align: center;
+    font-size: 15px;
+  }
+  .support-card { background-color: #1c2e2e; border: 1px solid #00c853; }
+  .resist-card { background-color: #2e1c1c; border: 1px solid #ff4b4b; }
+  .support-card b, .resist-card b { display: block; font-size: 18px; margin-top: 4px; }
+
+  .info-box, .warn-box, .error-box {
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .info-box { background-color: #0d3a4f; border: 1px solid #1f77b4; }
+  .warn-box { background-color: #4a3b0d; border: 1px solid #facc15; }
+  .error-box { background-color: #4a0d0d; border: 1px solid #ff4b4b; }
+
+  .loading { color: #aaaaaa; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>🛡️ 支撐壓力戰情室</h1>
+<p class="caption">無 OBI 替代方案：VWAP 成本線 + CDP 關卡</p>
+
+<div class="input-row">
+  <input type="text" id="symbolInput" value="2330.TW" placeholder="例: 2330.TW">
+  <button id="runBtn">計算</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+const symbolInput = document.getElementById('symbolInput');
+const runBtn = document.getElementById('runBtn');
+const result = document.getElementById('result');
+
+// CORS proxy fallback chain for Yahoo Finance chart API
+async function fetchYahooChart(symbol, range, interval) {
+  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+  const sources = [
+    target,
+    `https://corsproxy.io/?url=${encodeURIComponent(target)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`
+  ];
+
+  let lastErr;
+  for (const url of sources) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      if (json.chart && json.chart.result && json.chart.result[0]) {
+        return json.chart.result[0];
+      }
+      throw new Error('empty chart result');
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('all sources failed');
+}
+
+function parseDailyCandles(chartResult) {
+  const ts = chartResult.timestamp || [];
+  const q = chartResult.indicators.quote[0];
+  const candles = [];
+  for (let i = 0; i < ts.length; i++) {
+    if (q.close[i] == null || q.high[i] == null || q.low[i] == null) continue;
+    candles.push({
+      time: ts[i],
+      open: q.open[i],
+      high: q.high[i],
+      low: q.low[i],
+      close: q.close[i],
+      volume: q.volume[i] || 0
+    });
+  }
+  return candles;
+}
+
+function parseIntraday(chartResult) {
+  const ts = chartResult.timestamp || [];
+  const q = chartResult.indicators.quote[0];
+  const bars = [];
+  for (let i = 0; i < ts.length; i++) {
+    if (q.close[i] == null || q.high[i] == null || q.low[i] == null || q.volume[i] == null) continue;
+    bars.push({
+      high: q.high[i],
+      low: q.low[i],
+      close: q.close[i],
+      volume: q.volume[i]
+    });
+  }
+  return bars;
+}
+
+function fmt(n) {
+  return n.toFixed(2);
+}
+
+async function analyzeSupport(symbol) {
+  result.innerHTML = '<p class="loading">⏳ 計算中...</p>';
+
+  try {
+    // A. 日線數據 (5d) - 為了算 CDP
+    const dailyResult = await fetchYahooChart(symbol, '5d', '1d');
+    const dailyCandles = parseDailyCandles(dailyResult);
+
+    if (dailyCandles.length === 0) {
+      result.innerHTML = '<div class="error-box">❌ 抓取失敗，請確認代號。</div>';
+      return;
+    }
+    if (dailyCandles.length < 2) {
+      result.innerHTML = '<div class="warn-box">數據不足無法計算 CDP</div>';
+      return;
+    }
+
+    // 倒數第二筆 = 昨天
+    const yesterday = dailyCandles[dailyCandles.length - 2];
+    const yHigh = yesterday.high;
+    const yLow = yesterday.low;
+    const yClose = yesterday.close;
+
+    // CDP 公式
+    const cdp = (yHigh + yLow + (2 * yClose)) / 4;
+    const ah = cdp + (yHigh - yLow);
+    const nh = (2 * cdp) - yLow;
+    const nl = (2 * cdp) - yHigh;
+    const al = cdp - (yHigh - yLow);
+
+    // B. 分鐘數據 (1d/1m) - 為了算 VWAP
+    let currentPrice, vwap, hasIntraday;
+    try {
+      const intradayResult = await fetchYahooChart(symbol, '1d', '1m');
+      const bars = parseIntraday(intradayResult);
+      if (bars.length === 0) throw new Error('empty intraday');
+
+      currentPrice = bars[bars.length - 1].close;
+      let cumTPV = 0, cumV = 0;
+      for (const b of bars) {
+        const tp = (b.high + b.low + b.close) / 3;
+        cumTPV += tp * b.volume;
+        cumV += b.volume;
+      }
+      vwap = cumV > 0 ? cumTPV / cumV : currentPrice;
+      hasIntraday = true;
+    } catch (e) {
+      currentPrice = dailyCandles[dailyCandles.length - 1].close;
+      vwap = currentPrice;
+      hasIntraday = false;
+    }
+
+    // 漲跌
+    const prevClose = dailyCandles[dailyCandles.length - 2].close;
+    const changePct = ((currentPrice - prevClose) / prevClose) * 100;
+
+    // --- 畫面 ---
+    const colorVal = changePct > 0 ? '#ff4b4b' : '#00c853';
+
+    let html = '';
+    html += `
+      <div class="metric-card">
+        <p>即時股價</p>
+        <h2>${fmt(currentPrice)} <span style="font-size:18px; color:${colorVal}">${changePct >= 0 ? '+' : ''}${fmt(changePct)}%</span></h2>
+      </div>`;
+
+    html += '<h3>🧭 戰場定位</h3>';
+
+    let vwapStatus, vwapDeltaClass;
+    if (currentPrice >= vwap) {
+      vwapStatus = '股價在成本之上 (支撐強)';
+      vwapDeltaClass = 'delta-normal';
+    } else {
+      vwapStatus = '股價在成本之下 (壓力重)';
+      vwapDeltaClass = 'delta-inverse';
+    }
+
+    html += `
+      <div class="metric-box">
+        <div class="label">VWAP 當沖成本線</div>
+        <div class="value">${fmt(vwap)}</div>
+        <div class="delta ${vwapDeltaClass}">${vwapStatus}</div>
+      </div>`;
+
+    if (!hasIntraday) {
+      html += '<div class="info-box">⚠️ 目前無盤中即時成交明細，VWAP 為估算值。</div>';
+    }
+
+    html += '<h3>🧱 CDP 攻防關卡 (預判)</h3>';
+    html += '<p class="caption">這是根據昨日波動算出的今日防線，主力常在此佈局。</p>';
+
+    html += '<div class="cards-grid">';
+    html += `<div class="resist-card">🔴 壓力二 (追買)<b>${fmt(ah)}</b></div>`;
+    html += `<div class="support-card">🟢 支撐一 (買進)<b>${fmt(nl)}</b></div>`;
+    html += `<div class="resist-card">🟠 壓力一 (賣出)<b>${fmt(nh)}</b></div>`;
+    html += `<div class="support-card">🔵 支撐二 (停損)<b>${fmt(al)}</b></div>`;
+    html += '</div>';
+
+    // 軍師總結
+    let pos = '觀望';
+    if (currentPrice > nh) pos = '強勢突破壓力，小心假突破';
+    else if (currentPrice < nl) pos = '跌破第一支撐，尋求第二防線';
+    else if (currentPrice >= nl && currentPrice <= nh) pos = '區間震盪，低買高賣';
+
+    html += `<div class="info-box">💡 軍師戰略：${pos}。若股價回測 ${fmt(nl)} 不破且 VWAP 向上，為最佳買點。</div>`;
+
+    result.innerHTML = html;
+
+  } catch (e) {
+    result.innerHTML = `<div class="error-box">分析失敗：${e.message}</div>`;
+  }
+}
+
+runBtn.addEventListener('click', () => {
+  const symbol = symbolInput.value.toUpperCase().trim();
+  if (symbol) analyzeSupport(symbol);
+});
+
+symbolInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') runBtn.click();
+});
+
+// 初次載入自動執行
+analyzeSupport(symbolInput.value.toUpperCase().trim());
+</script>
+
+</body>
+</html>
