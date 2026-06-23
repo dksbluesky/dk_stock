@@ -123,7 +123,7 @@ async function fetchFugleQuote(symbol) {
   return {
     price: data.closePrice,
     avgPrice: data.avgPrice != null ? data.avgPrice : data.closePrice,
-    time: data.closeTime ? Math.floor(data.closeTime / 1000) : Math.floor(Date.now() / 1000)
+    time: data.closeTime ? Math.floor(data.closeTime / 1000000) : Math.floor(Date.now() / 1000)
   };
 }
 
