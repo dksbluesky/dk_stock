@@ -90,12 +90,78 @@
   .error-box { background-color: #fdeaea; border: 1px solid #e03131; color: #a31616; }
 
   .loading { color: #777777; font-size: 14px; }
+
+  .title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .title-row h1 { margin: 0; }
+  .help-btn {
+    background-color: #ffffff;
+    color: #4e8cff;
+    border: 1px solid #4e8cff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .help-btn:active { opacity: 0.7; }
+
+  .help-panel {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 12px 0 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .help-panel h4 { margin: 12px 0 6px 0; color: #b8860b; font-size: 15px; }
+  .help-panel h4:first-child { margin-top: 0; }
+  .help-panel table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .help-panel th, .help-panel td { border: 1px solid #e3e3e3; padding: 6px 8px; text-align: left; }
+  .help-panel th { background-color: #f5f6f8; }
+  .help-panel .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
 </style>
 </head>
 <body>
 
-<h1>🛡️ 支撐壓力戰情室</h1>
+<div class="title-row">
+  <h1>🛡️ 支撐壓力戰情室</h1>
+  <button id="helpBtn" class="help-btn">❓ 說明</button>
+</div>
 <p class="caption">無 OBI 替代方案：VWAP 成本線 + CDP 關卡</p>
+
+<div id="helpPanel" class="help-panel" style="display:none">
+  <h4>🧱 CDP 怎麼算？</h4>
+  <p>用「昨天」的最高、最低、收盤價算出今天的攻防關卡：</p>
+  <p>CDP（中心點）= (昨高 + 昨低 + 2×昨收) ÷ 4</p>
+
+  <table>
+    <tr><th>關卡</th><th>位置</th><th>含義</th></tr>
+    <tr><td><span class="legend-dot" style="background:#ff4b4b"></span>壓力二 (追買)</td><td>CDP + 振幅</td><td>突破代表動能強，順勢追買</td></tr>
+    <tr><td><span class="legend-dot" style="background:#ff9f40"></span>壓力一 (賣出)</td><td>2×CDP − 昨低</td><td>正常情況下的高點，碰到可獲利賣出</td></tr>
+    <tr><td><span class="legend-dot" style="background:#0a9c4a"></span>支撐一 (買進)</td><td>2×CDP − 昨高</td><td>正常情況下的低點，碰到可低接買進</td></tr>
+    <tr><td><span class="legend-dot" style="background:#4e8cff"></span>支撐二 (停損)</td><td>CDP − 振幅</td><td>跌破代表支撐失守，應停損出場</td></tr>
+  </table>
+
+  <p style="margin-top:8px;">邏輯：近的關卡（壓力一/支撐一）假設股價會「均值回歸」，所以是反向操作（高賣低買）；遠的關卡（壓力二/支撐二）假設股價「突破常態」，所以是順勢操作（追買/停損）。</p>
+
+  <h4>🎨 顏色說明</h4>
+  <p>紅/橙 = 壓力（價格上方關卡），綠/藍 = 支撐（價格下方關卡）。這只是區分「上方關卡」與「下方關卡」，跟台股慣例的紅漲綠跌沒有關係（漲跌幅 % 才是用紅漲綠跌）。</p>
+
+  <h4>📈 VWAP 是什麼？</h4>
+  <p>當日成交量加權平均價，代表今天所有買賣盤的平均成本。股價在 VWAP 之上代表多數人是賺錢的（支撐強）；股價在 VWAP 之下代表多數人是賠錢的（壓力重）。</p>
+
+  <h4>💡 軍師戰略怎麼判斷？</h4>
+  <p>單純比較目前股價與壓力一 (NH) / 支撐一 (NL) 的位置：</p>
+  <ul style="margin:4px 0 0 18px; padding:0;">
+    <li>股價 > 壓力一 → 強勢突破壓力，小心假突破</li>
+    <li>股價 < 支撐一 → 跌破第一支撐，尋求第二防線</li>
+    <li>支撐一 ≤ 股價 ≤ 壓力一 → 區間震盪，低買高賣</li>
+  </ul>
+
+  <h4>📊 資料來源</h4>
+  <p>盤中（平日 08:30–20:00）優先用 Fugle 即時報價；若失敗則退回 Yahoo Finance 分鐘線（約有 15–20 分延遲）；盤外時段則顯示上個交易日的收盤資料。</p>
+</div>
 
 <div class="input-row">
   <input type="text" id="symbolInput" value="2330.TW" placeholder="例: 2330.TW">
@@ -108,6 +174,14 @@
 const symbolInput = document.getElementById('symbolInput');
 const runBtn = document.getElementById('runBtn');
 const result = document.getElementById('result');
+const helpBtn = document.getElementById('helpBtn');
+const helpPanel = document.getElementById('helpPanel');
+
+helpBtn.addEventListener('click', () => {
+  const isHidden = helpPanel.style.display === 'none';
+  helpPanel.style.display = isHidden ? 'block' : 'none';
+  helpBtn.textContent = isHidden ? '✖ 關閉說明' : '❓ 說明';
+});
 
 // Fugle free-tier API key (low risk to expose client-side)
 const FUGLE_API_KEY = 'NDliZTZhODMtNmNjZi00ZDM5LWE0ZTUtMWVmNGY4OTkyMGViIGVmMmNkNDNhLWJiMWQtNDZkOS1iODgwLThlZDBhM2VhODk3Ng==';
