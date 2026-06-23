@@ -450,16 +450,25 @@ async function analyzeSupport(symbol) {
   }
 }
 
+const LAST_SYMBOL_KEY = 'dkStockLastSymbol';
+
+// 還原上次查詢的代號
+const savedSymbol = localStorage.getItem(LAST_SYMBOL_KEY);
+if (savedSymbol) symbolInput.value = savedSymbol;
+
 runBtn.addEventListener('click', () => {
   const symbol = symbolInput.value.toUpperCase().trim();
-  if (symbol) analyzeSupport(symbol);
+  if (symbol) {
+    localStorage.setItem(LAST_SYMBOL_KEY, symbol);
+    analyzeSupport(symbol);
+  }
 });
 
 symbolInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') runBtn.click();
 });
 
-// 初次載入自動執行
+// 初次載入自動執行 (使用上次查詢過的代號)
 analyzeSupport(symbolInput.value.toUpperCase().trim());
 
 // 盤中每 60 秒自動刷新
