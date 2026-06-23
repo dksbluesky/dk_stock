@@ -67,9 +67,12 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-  .support-card, .resist-card {
+  .level-group-label { font-size: 13px; color: #888888; font-weight: 600; margin: 10px 0 6px 0; }
+  .level-group-label:first-of-type { margin-top: 4px; }
+
+  .support-card, .resist-card, .extreme-card {
     border-radius: 8px;
     padding: 14px 10px;
     text-align: center;
@@ -77,7 +80,8 @@
   }
   .support-card { background-color: #e6f7ed; border: 1px solid #0a9c4a; color: #0a6e35; }
   .resist-card { background-color: #fdeaea; border: 1px solid #e03131; color: #a31616; }
-  .support-card b, .resist-card b { display: block; font-size: 18px; margin-top: 4px; }
+  .extreme-card { background-color: #f3f0fb; border: 1px dashed #8b5cf6; color: #5b21b6; }
+  .support-card b, .resist-card b, .extreme-card b { display: block; font-size: 18px; margin-top: 4px; }
 
   .info-box, .warn-box, .error-box {
     border-radius: 8px;
@@ -135,28 +139,34 @@
   <p>用「昨天」的最高、最低、收盤價算出今天的攻防關卡：</p>
   <p>CDP（中心點）= (昨高 + 昨低 + 2×昨收) ÷ 4</p>
 
+  <p style="margin-top:8px;"><b>這四個關卡其實分成兩組概念，不要混在一起看：</b></p>
+
+  <p style="margin-top:8px;">🎯 <b>核心支撐／壓力 (NH / NL)</b> — 這才是我們平常講的「支撐壓力」，代表正常情況下今天的預期高低點，操作邏輯是「均值回歸」：</p>
   <table>
     <tr><th>關卡</th><th>位置</th><th>含義</th></tr>
-    <tr><td><span class="legend-dot" style="background:#ff4b4b"></span>壓力二 (追買)</td><td>CDP + 振幅</td><td>突破代表動能強，順勢追買</td></tr>
-    <tr><td><span class="legend-dot" style="background:#ff9f40"></span>壓力一 (賣出)</td><td>2×CDP − 昨低</td><td>正常情況下的高點，碰到可獲利賣出</td></tr>
-    <tr><td><span class="legend-dot" style="background:#0a9c4a"></span>支撐一 (買進)</td><td>2×CDP − 昨高</td><td>正常情況下的低點，碰到可低接買進</td></tr>
-    <tr><td><span class="legend-dot" style="background:#4e8cff"></span>支撐二 (停損)</td><td>CDP − 振幅</td><td>跌破代表支撐失守，應停損出場</td></tr>
+    <tr><td><span class="legend-dot" style="background:#e03131"></span>壓力 (賣出)</td><td>2×CDP − 昨低</td><td>正常情況下的高點，碰到可獲利賣出</td></tr>
+    <tr><td><span class="legend-dot" style="background:#0a9c4a"></span>支撐 (買進)</td><td>2×CDP − 昨高</td><td>正常情況下的低點，碰到可低接買進</td></tr>
   </table>
 
-  <p style="margin-top:8px;">邏輯：近的關卡（壓力一/支撐一）假設股價會「均值回歸」，所以是反向操作（高賣低買）；遠的關卡（壓力二/支撐二）假設股價「突破常態」，所以是順勢操作（追買/停損）。</p>
+  <p style="margin-top:8px;">⚡ <b>極端關卡 (AH / AL)</b> — 這兩個其實<b>不是傳統意義的支撐壓力</b>，而是「突破確認」訊號：股價真的衝過或跌破這裡，代表趨勢力道超出正常範圍，操作邏輯是「順勢」而不是「逢高賣/逢低買」：</p>
+  <table>
+    <tr><th>關卡</th><th>位置</th><th>含義</th></tr>
+    <tr><td><span class="legend-dot" style="background:#8b5cf6"></span>最高值 (追買)</td><td>CDP + 振幅</td><td>突破代表動能強，順勢追買，而非在此賣出</td></tr>
+    <tr><td><span class="legend-dot" style="background:#8b5cf6"></span>最低值 (停損)</td><td>CDP − 振幅</td><td>跌破代表支撐徹底失守，應停損出場，而非在此買進</td></tr>
+  </table>
 
   <h4>🎨 顏色說明</h4>
-  <p>紅/橙 = 壓力（價格上方關卡），綠/藍 = 支撐（價格下方關卡）。這只是區分「上方關卡」與「下方關卡」，跟台股慣例的紅漲綠跌沒有關係（漲跌幅 % 才是用紅漲綠跌）。</p>
+  <p>綠 = 核心支撐 (買進)，紅 = 核心壓力 (賣出) — 這兩個是真正的支撐壓力。紫色虛線 = 極端關卡 (AH/AL)，刻意用不同顏色提醒：這不是用來逢高賣/逢低買的支撐壓力，而是突破/停損的觸發點。跟台股慣例的紅漲綠跌沒有關係（漲跌幅 % 才是用紅漲綠跌）。</p>
 
   <h4>📈 VWAP 是什麼？</h4>
   <p>當日成交量加權平均價，代表今天所有買賣盤的平均成本。股價在 VWAP 之上代表多數人是賺錢的（支撐強）；股價在 VWAP 之下代表多數人是賠錢的（壓力重）。</p>
 
   <h4>💡 軍師戰略怎麼判斷？</h4>
-  <p>單純比較目前股價與壓力一 (NH) / 支撐一 (NL) 的位置：</p>
+  <p>單純比較目前股價與核心壓力 (NH) / 核心支撐 (NL) 的位置：</p>
   <ul style="margin:4px 0 0 18px; padding:0;">
-    <li>股價 > 壓力一 → 強勢突破壓力，小心假突破</li>
-    <li>股價 < 支撐一 → 跌破第一支撐，尋求第二防線</li>
-    <li>支撐一 ≤ 股價 ≤ 壓力一 → 區間震盪，低買高賣</li>
+    <li>股價 > 核心壓力 → 強勢突破壓力，小心假突破</li>
+    <li>股價 < 核心支撐 → 跌破支撐，尋求極端關卡 (AL) 防線</li>
+    <li>核心支撐 ≤ 股價 ≤ 核心壓力 → 區間震盪，低買高賣</li>
   </ul>
 
   <h4>📊 資料來源</h4>
@@ -428,17 +438,22 @@ async function analyzeSupport(symbol) {
     html += '<h3>🧱 CDP 攻防關卡 (預判)</h3>';
     html += '<p class="caption">這是根據昨日波動算出的今日防線，主力常在此佈局。</p>';
 
+    html += '<div class="level-group-label">🎯 核心支撐／壓力 (區間操作參考)</div>';
     html += '<div class="cards-grid">';
-    html += `<div class="resist-card">🔴 壓力二 (追買)<b>${fmt(ah)}</b></div>`;
-    html += `<div class="support-card">🟢 支撐一 (買進)<b>${fmt(nl)}</b></div>`;
-    html += `<div class="resist-card">🟠 壓力一 (賣出)<b>${fmt(nh)}</b></div>`;
-    html += `<div class="support-card">🔵 支撐二 (停損)<b>${fmt(al)}</b></div>`;
+    html += `<div class="support-card">🟢 支撐 (買進)<b>${fmt(nl)}</b></div>`;
+    html += `<div class="resist-card">🔴 壓力 (賣出)<b>${fmt(nh)}</b></div>`;
+    html += '</div>';
+
+    html += '<div class="level-group-label">⚡ 極端關卡 (突破確認，非傳統支撐壓力)</div>';
+    html += '<div class="cards-grid">';
+    html += `<div class="extreme-card">🟣 最低值 (停損)<b>${fmt(al)}</b></div>`;
+    html += `<div class="extreme-card">🟣 最高值 (追買)<b>${fmt(ah)}</b></div>`;
     html += '</div>';
 
     // 軍師總結
     let pos = '觀望';
     if (currentPrice > nh) pos = '強勢突破壓力，小心假突破';
-    else if (currentPrice < nl) pos = '跌破第一支撐，尋求第二防線';
+    else if (currentPrice < nl) pos = '跌破支撐，尋求極端關卡防線';
     else if (currentPrice >= nl && currentPrice <= nh) pos = '區間震盪，低買高賣';
 
     html += `<div class="info-box">💡 軍師戰略：${pos}。若股價回測 ${fmt(nl)} 不破且 VWAP 向上，為最佳買點。</div>`;
