@@ -450,13 +450,20 @@ async function analyzeSupport(symbol) {
     html += `<div class="extreme-card">🟣 最高值 (追買)<b>${fmt(ah)}</b></div>`;
     html += '</div>';
 
-    // 軍師總結
-    let pos = '觀望';
-    if (currentPrice > nh) pos = '強勢突破壓力，小心假突破';
-    else if (currentPrice < nl) pos = '跌破支撐，尋求極端關卡防線';
-    else if (currentPrice >= nl && currentPrice <= nh) pos = '區間震盪，低買高賣';
+    // 軍師總結 — 依不同情境給對應的建議，避免在跌破支撐時還暗示買進
+    let pos, posDetail;
+    if (currentPrice > nh) {
+      pos = '強勢突破壓力，小心假突破';
+      posDetail = `若站穩 ${fmt(nh)} 之上且量能不減，可留意是否挑戰極端關卡 ${fmt(ah)}；追高仍有獲利回吐風險，不宜盲目追價。`;
+    } else if (currentPrice < nl) {
+      pos = '跌破支撐，尋求極端關卡防線';
+      posDetail = `核心支撐已失守，下一觀察點是極端關卡 ${fmt(al)}；此處風險偏空，不宜貿然在此買進，留意是否持續破底。`;
+    } else {
+      pos = '區間震盪，低買高賣';
+      posDetail = `若股價回測 ${fmt(nl)} 不破且 VWAP 向上，為相對較佳的買點；接近 ${fmt(nh)} 則可考慮獲利調節。`;
+    }
 
-    html += `<div class="info-box">💡 軍師戰略：${pos}。若股價回測 ${fmt(nl)} 不破且 VWAP 向上，為最佳買點。</div>`;
+    html += `<div class="info-box">💡 軍師戰略：${pos}。${posDetail}</div>`;
 
     result.innerHTML = html;
 
