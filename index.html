@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🧮支撐壓力戰情室</title>
+<meta name="theme-color" content="#B8860B">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -500,6 +502,12 @@ setInterval(() => {
     if (symbol) analyzeSupport(symbol);
   }
 }, 60 * 1000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch((error) => {
+    console.warn('Service worker registration failed:', error);
+  });
+}
 </script>
 
 </body>

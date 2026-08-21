@@ -1,0 +1,24 @@
+{
+  "id": "./support-resistance-war-room-pwa",
+  "name": "支撐壓力戰情室",
+  "short_name": "支撐壓力",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#B8860B",
+  "background_color": "#FFF9EB",
+  "icons": [
+    {
+      "src": "icons/dk-stock-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/dk-stock-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
